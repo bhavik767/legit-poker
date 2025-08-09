@@ -2,17 +2,25 @@ package com.legitpoker.service;
 
 import com.legitpoker.dto.CreateTableRequest;
 import com.legitpoker.dto.CreateTableResponse;
+import com.legitpoker.dto.JoinTableRequest;
+import com.legitpoker.dto.JoinTableResponse;
+import com.legitpoker.exception.ConflictException;
+import com.legitpoker.exception.NotFoundException;
+import com.legitpoker.model.Player;
 import com.legitpoker.model.PokerTable;
+import com.legitpoker.repository.PlayerRepository;
 import com.legitpoker.repository.PokerTableRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.util.Comparator;
 
 @Service
 public class PokerTableService {
 
     private final PokerTableRepository repository;
+    private final PlayerRepository playerRepo;
     private static final String ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
     private final SecureRandom rng = new SecureRandom();
 
@@ -21,10 +29,12 @@ public class PokerTableService {
 
     public PokerTableService(
             PokerTableRepository repository,
+            PlayerRepository playerRepo,
             @Value("${app.base-url}") String baseUrl,
             @Value("${app.table-code-length:8}") int codeLength
     ) {
         this.repository = repository;
+        this.playerRepo = playerRepo;
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.codeLength = codeLength;
     }
@@ -55,6 +65,59 @@ public class PokerTableService {
                 shareUrl
         );
     }
+
+    public JoinTableResponse joinTable(String code, JoinTableRequest req) {
+        PokerTable table = repository.findById(code)
+                .orElseThrow(() -> new NotFoundException("Table not found"));
+
+        // Capacity check
+        int count = playerRepo.countByTableId(code);
+        if (count >= 10) throw new ConflictException("Table is full");
+
+        // Nickname checks
+        String nickname = req.getNickname().trim();
+        if (nickname.isEmpty() || nickname.length() < 2 || nickname.length() > 20) {
+            throw new ConflictException("Invalid nickname");
+        }
+        if (playerRepo.existsByTableIdAndNickname(code, nickname)) {
+            throw new ConflictException("Nickname already seated");
+        }
+
+        // Seat selection: first free seat [0..9]
+        boolean[] used = new boolean[10];
+        for (var p : playerRepo.findByTableId(code)) {
+            int s = p.getSeatNumber();
+            if (s >= 0 && s < 10) used[s] = true;
+        }
+        int seat = -1;
+        for (int i = 0; i < 10; i++) if (!used[i]) { seat = i; break; }
+        if (seat == -1) throw new ConflictException("Table is full");
+
+        // Persist player
+        Player player = new Player();
+        player.setTableId(code);
+        player.setNickname(nickname);
+        player.setSeatNumber(seat);
+        player.setChips(table.getStartingStack());
+        playerRepo.save(player);
+
+        // Snapshot
+        var players = playerRepo.findByTableId(code).stream()
+                .sorted(Comparator.comparingInt(Player::getSeatNumber))
+                .map(p -> new JoinTableResponse.PlayerView(p.getSeatNumber(), p.getNickname(), p.getChips()))
+                .toList();
+
+        return new JoinTableResponse(
+                code,
+                seat,
+                player.getChips(),
+                players,
+                new JoinTableResponse.Blinds(table.getSmallBlind(), table.getBigBlind()),
+                table.getTurnTimerSeconds(),
+                new JoinTableResponse.Options(table.isRabbitHunting(), table.isRunItTwice())
+        );
+    }
+
 
     private String generateUniqueCode() {
         // Try a few times to avoid extremely rare collisions
