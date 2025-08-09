@@ -1,9 +1,6 @@
 package com.legitpoker.controller;
 
-import com.legitpoker.dto.CreateTableRequest;
-import com.legitpoker.dto.CreateTableResponse;
-import com.legitpoker.dto.JoinTableRequest;
-import com.legitpoker.dto.JoinTableResponse;
+import com.legitpoker.dto.*;
 import com.legitpoker.service.PokerTableService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -30,5 +27,12 @@ public class TableController {
             @Valid @RequestBody JoinTableRequest req
     ) {
         return ResponseEntity.ok(pokerTableService.joinTable(code, req));
+    }
+
+    @PatchMapping("/{code}/settings")
+    public ResponseEntity<CreateTableResponse> update(@PathVariable String code,
+                                                      @RequestHeader("X-Owner-Token") String ownerToken,
+                                                      @Valid @RequestBody UpdateTableSettingsRequest req) {
+        return ResponseEntity.ok(pokerTableService.updateTableSettings(code, ownerToken, req));
     }
 }

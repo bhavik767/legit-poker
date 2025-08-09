@@ -28,4 +28,8 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.badRequest().body(errs);
     }
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<?> forbidden(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", ex.getMessage()));
+    }
 }

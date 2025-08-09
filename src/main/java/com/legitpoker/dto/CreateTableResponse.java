@@ -15,4 +15,6 @@ public class CreateTableResponse {
     private boolean rabbitHunting;
     private boolean runItTwice;
     private String shareUrl;
+
+    private String ownerToken;
 }
