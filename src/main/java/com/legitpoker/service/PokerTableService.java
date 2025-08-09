@@ -10,7 +10,6 @@ import com.legitpoker.repository.PlayerRepository;
 import com.legitpoker.repository.PokerTableRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Comparator;

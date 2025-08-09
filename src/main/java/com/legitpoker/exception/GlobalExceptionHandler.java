@@ -32,4 +32,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> forbidden(ForbiddenException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", ex.getMessage()));
     }
+
+    @ExceptionHandler(InvalidActionException.class)
+    public ResponseEntity<?> invalidAction(InvalidActionException ex) {
+        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+    }
 }

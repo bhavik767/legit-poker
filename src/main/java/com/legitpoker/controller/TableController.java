@@ -35,4 +35,7 @@ public class TableController {
                                                       @Valid @RequestBody UpdateTableSettingsRequest req) {
         return ResponseEntity.ok(pokerTableService.updateTableSettings(code, ownerToken, req));
     }
+
+
+
 }
