@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Audio WS Test</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 24px auto; }
+        label { display:block; margin: 8px 0; }
+        input, textarea, button { font-size: 14px; }
+        #log { height: 320px; overflow: auto; border: 1px solid #ccc; padding: 8px; background:#fafafa; }
+        .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        textarea { width:100%; height:80px; }
+    </style>
+</head>
+<body>
+<h2>Audio Signaling Test</h2>
+
+<div class="row">
+    <label>Table Code: <input id="code" placeholder="use your table id"/></label>
+    <label>Nickname: <input id="nick" value="Alex"/></label>
+    <button id="connect">Connect</button>
+    <button id="join" disabled>JOIN</button>
+    <button id="leave" disabled>LEAVE</button>
+</div>
+
+<h3>Send OFFER / ANSWER / ICE</h3>
+<div class="row">
+    <label>To (target nickname): <input id="to"/></label>
+    <button id="sendOffer" disabled>Send OFFER</button>
+    <button id="sendAnswer" disabled>Send ANSWER</button>
+    <button id="sendIce" disabled>Send ICE</button>
+</div>
+<label>SDP (paste any text for now):</label>
+<textarea id="sdp"></textarea>
+<label>ICE candidate (paste any text):</label>
+<textarea id="ice"></textarea>
+
+<h3>Participants snapshot (server pushes)</h3>
+<pre id="participants"></pre>
+
+<h3>Log</h3>
+<pre id="log"></pre>
+
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script>
+    let client, subEvents, subParticipants;
+    const $ = id => document.getElementById(id);
+    const log = m => { const el = $('log'); el.textContent += m + "\n"; el.scrollTop = el.scrollHeight; };
+    const showParticipants = data => $('participants').textContent = JSON.stringify(data, null, 2);
+
+    $('connect').onclick = () => {
+      const code = $('code').value.trim();
+      if (!code) return alert('Enter table code');
+      const wsUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/ws';
+      client = Stomp.over(new WebSocket(wsUrl));
+      client.debug = () => {}; // silence
+      client.connect({}, () => {
+        subEvents = client.subscribe('/topic/audio/' + code, frame => {
+          log('EVENT: ' + frame.body);
+        });
+        subParticipants = client.subscribe('/topic/audio/' + code + '/participants', frame => {
+          try { showParticipants(JSON.parse(frame.body)); } catch {}
+        });
+        $('join').disabled = $('leave').disabled = $('sendOffer').disabled = $('sendAnswer').disabled = $('sendIce').disabled = false;
+        log('Connected. Subscribed to /topic/audio/' + code + ' and /participants');
+        // also fetch snapshot once via REST
+        fetch('/tables/' + code + '/audio/participants')
+          .then(r => r.json()).then(showParticipants).catch(()=>{});
+      });
+    };
+
+    function send(type, extra = {}) {
+      const code = $('code').value.trim();
+      const from = $('nick').value.trim();
+      const msg = { type, from, ...extra };
+      client.send('/app/audio/' + code, {}, JSON.stringify(msg));
+      log('SENT: ' + JSON.stringify(msg));
+    }
+
+    $('join').onclick  = () => send('JOIN');
+    $('leave').onclick = () => send('LEAVE');
+
+    $('sendOffer').onclick  = () => send('OFFER',  { to: $('to').value.trim(), sdp: $('sdp').value });
+    $('sendAnswer').onclick = () => send('ANSWER', { to: $('to').value.trim(), sdp: $('sdp').value });
+    $('sendIce').onclick    = () => send('ICE',    { to: $('to').value.trim(), candidate: $('ice').value });
+</script>
+</body>
+</html>
