@@ -33,6 +33,18 @@ public class Player {
     @Column(nullable = false)
     private int chips;
 
+    // NEW: current bet contribution in the current betting round / hand
+    @Column(name = "current_bet", nullable = false)
+    private int currentBet = 0;
+
+    // NEW: player folded this hand
+    @Column(name = "folded", nullable = false)
+    private boolean folded = false;
+
+    // NEW: player has gone all-in this hand
+    @Column(name = "all_in", nullable = false)
+    private boolean allIn = false;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 }

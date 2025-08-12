@@ -1,7 +1,7 @@
-package com.legitpoker.service;
+package com.legitpoker.Gameplay.services;
 
-import com.legitpoker.dto.PlayerActionRequest;
-import com.legitpoker.dto.PlayerActionResponse;
+import com.legitpoker.Gameplay.dto.PlayerActionRequest;
+import com.legitpoker.Gameplay.dto.PlayerActionResponse;
 import com.legitpoker.exception.ConflictException;
 import com.legitpoker.exception.ForbiddenException;
 import com.legitpoker.exception.NotFoundException;
@@ -14,18 +14,28 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
+
+
 @Service
 public class GameplayService {
 
     private final PokerTableRepository pokerTableRepository;
     private final PlayerRepository playerRepository;
+    private final SidePotService sidePotService;
+    private final GameAuditService auditService;
 
     // This map keeps track of table state in-memory (turns, pot, bets)
     private final Map<String, TableState> tableStates = new HashMap<>();
 
-    public GameplayService(PokerTableRepository pokerTableRepository, PlayerRepository playerRepository) {
+    public GameplayService(PokerTableRepository pokerTableRepository,
+                           PlayerRepository playerRepository,
+                           SidePotService sidePotService,
+                           GameAuditService auditService) {
         this.pokerTableRepository = pokerTableRepository;
         this.playerRepository = playerRepository;
+        this.sidePotService = sidePotService;
+        this.auditService = auditService;
+
     }
 
     @Transactional

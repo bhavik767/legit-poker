@@ -1,4 +1,4 @@
-package com.legitpoker.dto;
+package com.legitpoker.Gameplay.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

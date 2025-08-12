@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Table(name = "poker_table")
 @Data
@@ -25,4 +27,13 @@ public class PokerTable {
 
     @Column(nullable = false, length = 64)
     private String ownerToken;
+
+    // NEW: current pot (single total pot before side pots are computed)
+    @Column(nullable = false)
+    private int pot = 0;
+
+    // NEW: whether a hand is currently in progress
+    private boolean handInProgress = false;
+
+    // helper omitted because we don't map players here (use PlayerRepository)
 }

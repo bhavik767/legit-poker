@@ -1,4 +1,4 @@
-package com.legitpoker.dto;
+package com.legitpoker.Gameplay.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
